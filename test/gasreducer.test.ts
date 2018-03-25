@@ -8,29 +8,44 @@ import {
 } from 'gas-reducer';
 
 import { ContractContextDefinition } from 'truffle';
-import {
-  assertNumberEqual,
-  assertReverts,
-  findLastLog,
-  ZERO_ADDRESS
-} from './helpers';
 
 declare const web3: Web3;
 declare const artifacts: GasReducerArtifacts;
 declare const contract: ContractContextDefinition;
 
-const GasReducerContract = artifacts.require('./GasReducer.sol');
 const GST2Contract = artifacts.require('./GasToken2.sol');
+const GasConsumerContract = artifacts.require('./GasConsumer.sol');
+const GasReducerContract = artifacts.require('./GasReducer.sol');
 
-contract('GasReducer', accounts => {
-
+contract('GST2', accounts => {
   const owner = accounts[9];
 
-  describe('Init', () => {
+  describe('#init', () => {
     it('Should deploy GST2', async () => {
       const gst2 = await GST2Contract.new({ from: owner });
-      console.log(gst2);
       assert.isOk(gst2);
+    });
+  });
+});
+
+contract('GasReducerConsumer', accounts => {
+  const owner = accounts[9];
+
+  describe('#init', () => {
+    it('Should deploy GasConsumer', async () => {
+      const gasConsumer = await GasConsumerContract.new({ from: owner });
+      assert.isOk(gasConsumer);
+    });
+  });
+});
+
+contract('GasReducer', accounts => {
+  const owner = accounts[9];
+
+  describe('#init', () => {
+    it('Should deploy GasReducer', async () => {
+      const gasReducer = await GasReducerContract.new({ from: owner });
+      assert.isOk(gasReducer);
     });
   });
 });

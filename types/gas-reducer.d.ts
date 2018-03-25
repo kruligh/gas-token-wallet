@@ -10,7 +10,6 @@ declare module 'gas-reducer' {
   } from 'truffle';
   import { AnyNumber } from 'web3';
 
-
   export interface Migrations extends ContractBase {
     setCompleted(
       completed: number,
@@ -36,10 +35,6 @@ declare module 'gas-reducer' {
     ): Promise<TransactionResult>;
   }
 
-  export interface GasReducer extends ContractBase {
-
-  }
-
   export interface GST2 extends ERC20 {
     mint(
       count: AnyNumber,
@@ -47,16 +42,28 @@ declare module 'gas-reducer' {
     ): Promise<void>;
   }
 
+  export interface GasConsumer extends ContractBase {
+    saveStorage(count: AnyNumber): Promise<void>;
+  }
+
+  export interface GasReducer extends ContractBase {
+
+  }
+
   export interface MigrationsContract extends Contract<Migrations> {
     'new'(options?: TransactionOptions): Promise<Migrations>;
   }
 
-  export interface GasReducerContract extends Contract<GasReducer> {
-    'new'(options?: TransactionOptions): Promise<GasReducer>;
-  }
-
   export interface GST2Contract extends Contract<GST2> {
     'new'(options?: TransactionOptions): Promise<GST2>;
+  }
+
+  export interface GasConsumerContract extends Contract<GasConsumer> {
+    'new'(options?: TransactionOptions): Promise<GasConsumer>;
+  }
+
+  export interface GasReducerContract extends Contract<GasReducer> {
+    'new'(options?: TransactionOptions): Promise<GasReducer>;
   }
 
   export interface GasReducerArtifacts extends TruffleArtifacts {
@@ -64,9 +71,11 @@ declare module 'gas-reducer' {
 
     require(name: './Migrations.sol'): MigrationsContract;
 
-    require(name: './GasReducer.sol'): GasReducerContract;
-
     require(name: './GasToken2.sol'): GST2Contract;
+
+    require(name: './GasConsumer.sol'): GasConsumerContract;
+
+    require(name: './GasReducer.sol'): GasReducerContract;
   }
 
 }
