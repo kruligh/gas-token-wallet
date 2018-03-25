@@ -43,7 +43,7 @@ declare module 'gas-reducer' {
   }
 
   export interface GasConsumer extends ContractBase {
-    saveStorage(count: AnyNumber): Promise<void>;
+    saveStorage(count: AnyNumber): Promise<TransactionResult>;
   }
 
   export interface GasReducer extends ContractBase {

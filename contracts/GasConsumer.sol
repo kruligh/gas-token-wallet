@@ -11,8 +11,7 @@ contract GasConsumer {
     uint256[] data;
 
     function GasConsumer() public {
-        //todo consider this init, is it required??
-        //probably init data, so calling saveStorage should consume constant gas/save usage, including first call
+        //init data, otherwise first calls aveStorage consume extra initialization gas
         data.push(1);
     }
 

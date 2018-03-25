@@ -3,11 +3,13 @@ import { assert } from 'chai';
 import * as Web3 from 'web3';
 
 import {
+  GasConsumer,
   GasReducer,
   GasReducerArtifacts
 } from 'gas-reducer';
 
 import { ContractContextDefinition } from 'truffle';
+import { assertNumberAlmostEqual } from './helpers';
 
 declare const web3: Web3;
 declare const artifacts: GasReducerArtifacts;
@@ -35,6 +37,30 @@ contract('GasReducerConsumer', accounts => {
     it('Should deploy GasConsumer', async () => {
       const gasConsumer = await GasConsumerContract.new({ from: owner });
       assert.isOk(gasConsumer);
+    });
+  });
+
+  describe('#saveStorage', () => {
+    let gasConsumer: GasConsumer;
+
+    beforeEach(async () => {
+      gasConsumer = await GasConsumerContract.new({ from: owner });
+    });
+
+    it('Should consume constant gas per save count', async () => {
+      const expectedGasAmount = 25800;
+      const gasEpsilon = 50;
+      const callTx = await gasConsumer.saveStorage(0);
+      const callGasUsage = callTx.receipt.gasUsed;
+
+      for (let i = 1; i <= 10; i++) {
+        const tx = await gasConsumer.saveStorage(i);
+        assertNumberAlmostEqual(
+          '' + (tx.receipt.gasUsed - callGasUsage) / i,
+          expectedGasAmount,
+          gasEpsilon
+        );
+      }
     });
   });
 });
