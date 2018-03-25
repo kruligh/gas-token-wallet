@@ -1,0 +1,12 @@
+{
+  "generator-ts-truffle": {
+    "name": "gas-reducer-contracts",
+    "mainType": "gas-reducer",
+    "author": "Dominik Króliczek",
+    "authorUrl": "http://github.com/kruligh",
+    "contracts": [
+      "GasReducer"
+    ],
+    "solidityVersion": "0.4.19"
+  }
+}
