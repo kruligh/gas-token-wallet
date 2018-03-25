@@ -5,7 +5,7 @@ import * as Web3 from 'web3';
 import {
   GasConsumer,
   GasReducer,
-  GasReducerArtifacts
+  GasReducerArtifacts, GST2
 } from 'gas-reducer';
 
 import { ContractContextDefinition } from 'truffle';
@@ -68,10 +68,27 @@ contract('GasReducerConsumer', accounts => {
 contract('GasReducer', accounts => {
   const owner = accounts[9];
 
+  let gst2: GST2;
+  let gasReducer: GasReducer;
+  beforeEach(async () => {
+    gst2 = await GST2Contract.new({ from: owner });
+    gasReducer = await GasReducerContract.new(
+      gst2.address,
+      { from: owner }
+    );
+  });
+
   describe('#init', () => {
     it('Should deploy GasReducer', async () => {
-      const gasReducer = await GasReducerContract.new({ from: owner });
       assert.isOk(gasReducer);
+    });
+
+    it('Should deploy GasReducer and set GST2', async () => {
+      assert.isOk(gasReducer);
+      assert.equal(
+        await gasReducer.gst2(),
+        gst2.address
+      );
     });
   });
 });

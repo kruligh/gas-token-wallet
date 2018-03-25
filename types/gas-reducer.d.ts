@@ -47,7 +47,7 @@ declare module 'gas-reducer' {
   }
 
   export interface GasReducer extends ContractBase {
-
+    gst2(): Promise<Address>;
   }
 
   export interface MigrationsContract extends Contract<Migrations> {
@@ -63,7 +63,10 @@ declare module 'gas-reducer' {
   }
 
   export interface GasReducerContract extends Contract<GasReducer> {
-    'new'(options?: TransactionOptions): Promise<GasReducer>;
+    'new'(
+      gst2: Address,
+      options?: TransactionOptions
+    ): Promise<GasReducer>;
   }
 
   export interface GasReducerArtifacts extends TruffleArtifacts {
