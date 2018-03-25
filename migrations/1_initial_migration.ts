@@ -1,7 +1,7 @@
-import { Gas-reducerArtifacts } from 'gas-reducer';
+import { GasReducerArtifacts } from 'gas-reducer';
 import { Deployer } from 'truffle';
 
-declare const artifacts: Gas-reducerArtifacts;
+declare const artifacts: GasReducerArtifacts;
 
 const Migrations = artifacts.require('./Migrations.sol');
 
