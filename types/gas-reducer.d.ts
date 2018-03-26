@@ -40,10 +40,21 @@ declare module 'gas-reducer' {
       count: AnyNumber,
       options?: TransactionOptions
     ): Promise<void>;
+
+    free(
+      count: AnyNumber,
+      options?: TransactionOptions
+    ): Promise<TransactionResult>;
   }
 
   export interface GasConsumer extends ContractBase {
-    saveStorage(count: AnyNumber): Promise<TransactionResult>;
+
+    doNothing(options?: TransactionOptions): Promise<TransactionResult>;
+
+    saveStorage(
+      count: AnyNumber,
+      options?: TransactionOptions
+    ): Promise<TransactionResult>;
   }
 
   export interface GasReducer extends ContractBase {

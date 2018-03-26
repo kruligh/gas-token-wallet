@@ -9,7 +9,7 @@ import {
 } from 'gas-reducer';
 
 import { ContractContextDefinition } from 'truffle';
-import { assertNumberAlmostEqual } from './helpers';
+import { assertNumberAlmostEqual, assertNumberEqual } from './helpers';
 
 declare const web3: Web3;
 declare const artifacts: GasReducerArtifacts;
@@ -19,21 +19,42 @@ const GST2Contract = artifacts.require('./GasToken2.sol');
 const GasConsumerContract = artifacts.require('./GasConsumer.sol');
 const GasReducerContract = artifacts.require('./GasReducer.sol');
 
-contract('GST2', accounts => {
-  const owner = accounts[9];
+const magicAccount: Address = '0x470F1C3217A2F408769bca5AB8a5c67A9040664A';
+const magicNonce = 125;
 
-  describe('#init', () => {
+contract('GST2', accounts => {
+  let gasConsumer: GasConsumer;
+  let gst2: GST2;
+
+  before(async () => {
+    gasConsumer = await GasConsumerContract.new();
+    const actualNonce = await web3.eth.getTransactionCount(magicAccount);
+    if (actualNonce >= magicNonce) {
+      throw new Error(`Nonce too high. Actual: ${actualNonce} the highest possible: ${magicNonce - 1}`);
+    }
+    for (let i = actualNonce; i < magicNonce; i++) {
+      await gasConsumer.doNothing({ from: magicAccount });
+      process.stdout.write('.');
+    }
+    process.stdout.write('\n');
+    gst2 = await GST2Contract.new({ from: magicAccount, nonce: magicNonce });
+  });
+
+  describe('init', () => {
     it('Should deploy GST2', async () => {
-      const gst2 = await GST2Contract.new({ from: owner });
       assert.isOk(gst2);
+    });
+
+    it('Should create magic account', () => {
+      assert.isOk(accounts.find(item => item.toUpperCase() === magicAccount.toUpperCase()));
     });
   });
 });
 
 contract('GasReducerConsumer', accounts => {
-  const owner = accounts[9];
+  const owner = accounts[1];
 
-  describe('#init', () => {
+  describe('init', () => {
     it('Should deploy GasConsumer', async () => {
       const gasConsumer = await GasConsumerContract.new({ from: owner });
       assert.isOk(gasConsumer);
@@ -66,7 +87,7 @@ contract('GasReducerConsumer', accounts => {
 });
 
 contract('GasReducer', accounts => {
-  const owner = accounts[9];
+  const owner = accounts[1];
 
   let gst2: GST2;
   let gasReducer: GasReducer;
@@ -92,3 +113,21 @@ contract('GasReducer', accounts => {
     });
   });
 });
+
+async function mint(
+  gst2: GST2,
+  owner: Address,
+  mintingTimes: number = 10,
+  mintingAmount: number = 100
+): Promise<number> {
+
+  for (let i = 0; i < mintingTimes; i++) {
+    await gst2.mint(mintingAmount, { from: owner });
+  }
+  assertNumberEqual(
+    await gst2.balanceOf(owner),
+    mintingTimes * mintingAmount
+  );
+
+  return mintingTimes * mintingAmount;
+}

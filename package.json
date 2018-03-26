@@ -8,7 +8,7 @@
     "compile:sol": "truffle compile",
     "compile:ts": "tsc",
     "test": "run-s compile:ts test:js",
-    "test:js": "truffle test",
+    "test:js": "node ./tests.script.js",
     "lint": "run-p -c --aggregate-output lint:solhint lint:tslint",
     "lint:tslint": "tslint --project .",
     "lint:tslint:fix": "tslint --fix --project .",
@@ -34,6 +34,7 @@
     "solhint": "^1.1.10",
     "truffle": "4.0.6",
     "tslint": "^5.8.0",
-    "typescript": "^2.6.2"
+    "typescript": "^2.6.2",
+    "ganache-cli": "latest"
   }
 }

@@ -13,7 +13,17 @@ declare module 'web3' {
       getBlockNumber(callback: Callback<number>): void;
       sendTransaction(txData: Web3.TxData, callback: Callback<string>): void;
       getBalance(account: Address, callback: Callback<BigNumber>): void;
+      getTransactionCount(account: Address): Promise<number>;
       sign(account: Address, text: string): string;
+    };
+
+    public personal: {
+      importRawKey(rawKey: string, password: string): string;
+      newAccount(password?: string): string;
+      unlockAccount(address: string, password?: string, duration?: number): boolean;
+      lockAccount(address: string): boolean;
+      sign(message: string, account: string, password: string): string;
+      sign(hexMessage: string, account: string, callback: (error: Error, signature: string) => void): void;
     };
 
     public version: {
@@ -25,6 +35,7 @@ declare module 'web3' {
     public sha3(str: string, options?: { encoding: 'hex' }): string;
 
     public toDecimal(hex: string): number;
+
     public toHex(num: number): string;
   }
 

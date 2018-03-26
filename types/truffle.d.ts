@@ -59,6 +59,8 @@ declare module 'truffle' {
       gas?: number;
       gasPrice?: number;
       value?: AnyNumber;
+      data?: string;
+      nonce?: number;
     };
 
     type TransactionReceipt = {

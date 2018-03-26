@@ -15,6 +15,10 @@ contract GasConsumer {
         data.push(1);
     }
 
+    function doNothing() public {
+
+    }
+
     function saveStorage(uint256 count) public {
         for(uint i = 0; i<count; i++){
             data.push(1);

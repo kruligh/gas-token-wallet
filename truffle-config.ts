@@ -1,4 +1,4 @@
-const gas = 3000000;
+const gas = 5200000;
 const host = 'localhost';
 const port = 8545;
 
