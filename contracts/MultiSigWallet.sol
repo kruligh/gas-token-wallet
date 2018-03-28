@@ -8,6 +8,7 @@ pragma solidity 0.4.19;
  */
 contract GasTokenIfc {
     function free(uint256 value) public returns (bool success);
+    function balanceOf(address owner) public view returns (uint256 balance);
 }
 
 
@@ -33,12 +34,13 @@ contract MultiSigWallet {
     uint256 public transactionCount;
 
     GasTokenIfc gasToken;
+    uint256 reservedGasToken;
 
     struct Transaction {
         address destination;
         uint256 value;
         bytes data;
-//        uint256 gasTokenCount;
+        uint256 gasTokenAmount;
         bool executed;
     }
 
@@ -59,6 +61,8 @@ contract MultiSigWallet {
     event OwnerRemoval(address indexed owner);
 
     event RequirementChange(uint256 required);
+
+    event GasTokenAddition(address gasTokenAddress);
 
     modifier onlyWallet() {
         require(msg.sender == address(this));
@@ -222,6 +226,19 @@ contract MultiSigWallet {
     }
 
     /**
+     * @dev Add gas token address
+     * @param _gasToken GasToken address
+     */
+    function addGasToken(address _gasToken)
+        public
+        onlyWallet
+        onlyValid(_gasToken)
+    {
+        gasToken = GasTokenIfc(_gasToken);
+        GasTokenAddition(gasToken);
+    }
+
+    /**
      * @dev Submit and confirm a transaction
      * @dev Transaction has to be sent by wallet
      * @param destination The transaction target address
@@ -234,7 +251,30 @@ contract MultiSigWallet {
         onlyOwnerExists(msg.sender)
         returns (uint256 transactionId)
     {
-        transactionId = addTransaction(destination, value, data);
+        transactionId = addTransaction(destination, value, data, 0);
+        confirmTransaction(transactionId);
+    }
+
+    /**
+     * @dev Submit and confirm a transaction
+     * @dev Transaction has to be sent by wallet
+     * @dev Before send transaction gas token is used
+     * @param destination The transaction target address
+     * @param value The transaction ETH value
+     * @param data The transaction data payload
+     * @param gasTokenAmount gas token amount to use
+     * @return A transaction ID
+     */
+    function submitTransactionWithGasToken(address destination, uint256 value, bytes data, uint256 gasTokenAmount)
+        public
+        onlyOwnerExists(msg.sender)
+        returns (uint256 transactionId)
+    {
+        require(gasToken != address(0));
+        require(gasToken.balanceOf(this) >= gasTokenAmount);
+        reservedGasToken += gasTokenAmount;
+        
+        transactionId = addTransaction(destination, value, data, gasTokenAmount);
         confirmTransaction(transactionId);
     }
 
@@ -365,6 +405,30 @@ contract MultiSigWallet {
     }
 
     /**
+     * @dev get gas token address
+     * @return gas token address
+     */
+    function getGasToken()
+        public
+        view
+        returns (address)
+    {
+        return gasToken;
+    }
+
+    /**
+     * @dev get reserved gas token amount
+     * @return reserved gas token amount
+     */
+    function getReservedGasToken()
+        public
+        view
+        returns (uint256)
+    {
+        return reservedGasToken;
+    }
+
+    /**
      * @dev Get array with owner addresses that confirmed the transaction
      * @param transactionId The transaction ID
      * @return Array of owner addresses that confirmed the transaction
@@ -435,7 +499,7 @@ contract MultiSigWallet {
      * @param data The transaction data payload
      * @return The transaction ID
      */
-    function addTransaction(address destination, uint256 value, bytes data)
+    function addTransaction(address destination, uint256 value, bytes data, uint256 gasTokenAmount)
         internal
         onlyValid(destination)
         returns (uint256 transactionId)
@@ -445,6 +509,7 @@ contract MultiSigWallet {
             destination: destination,
             value: value,
             data: data,
+            gasTokenAmount: gasTokenAmount,
             executed: false
         });
         transactionCount += 1;

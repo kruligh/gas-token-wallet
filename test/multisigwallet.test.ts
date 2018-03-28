@@ -4,7 +4,9 @@ import {
   ConfirmationEvent,
   ExecutionEvent,
   ExecutionFailureEvent,
+  GasConsumer,
   GasReducerArtifacts,
+  GasTokenAdditionEvent,
   GST2,
   MultiSigWallet,
   OwnerAdditionEvent,
@@ -14,11 +16,11 @@ import {
   SubmissionEvent
 } from 'gas-reducer';
 import { propOr } from 'ramda';
-import { ContractContextDefinition } from 'truffle';
+import { ContractContextDefinition, TransactionResult } from 'truffle';
 import * as Web3 from 'web3';
 import { AnyNumber } from 'web3';
-import { deployGST2, GST2_MAGIC_ACCOUNT, GST2_MAGIC_NONCE } from './helpers/gst2.helpers';
 import { assertNumberEqual, assertReverts, findLastLog } from './helpers/common.helpers';
+import { deployGST2, GST2_MAGIC_ACCOUNT, GST2_MAGIC_NONCE } from './helpers/gst2.helpers';
 import { executeWalletFunction, findLastTransactionId, getData } from './helpers/multisigwallet.helpers';
 
 declare const web3: Web3;
@@ -26,6 +28,7 @@ declare const artifacts: GasReducerArtifacts;
 declare const contract: ContractContextDefinition;
 
 const MultiSigWalletContract = artifacts.require('./MultiSigWallet.sol');
+const GasConsumerContract = artifacts.require('./GasConsumer.sol');
 
 contract('MultiSigWallet', accounts => {
   const owners = accounts.slice(0, 3);
@@ -319,14 +322,6 @@ contract('MultiSigWallet', accounts => {
         });
       });
     });
-
-    context('GasToken2 in use', () => {
-      let gst2: GST2;
-
-      beforeEach(async () => {
-        gst2 = await deployGST2(GST2_MAGIC_ACCOUNT, GST2_MAGIC_NONCE);
-      });
-    });
   });
 
   describe('#changeRequirement', () => {
@@ -517,6 +512,161 @@ contract('MultiSigWallet', accounts => {
   });
 
 });
+
+contract('MultiSigWallet gas token usage', (accounts) => {
+  const owner = accounts[1];
+  const ownerSecond = accounts[2];
+
+  let gst2: GST2;
+  let gasConsumer: GasConsumer;
+
+  before(async () => {
+    gst2 = await deployGST2(GST2_MAGIC_ACCOUNT, GST2_MAGIC_NONCE);
+    gasConsumer = await GasConsumerContract.new({ from: owner });
+  });
+
+  context('gas token maintain', () => {
+    const required = 1;
+
+    let wallet: MultiSigWallet;
+    let addGasTokenTx: TransactionResult;
+
+    beforeEach(async () => {
+      wallet = await MultiSigWalletContract.new(
+        [owner, ownerSecond],
+        required,
+        { from: owner }
+      );
+      addGasTokenTx = await submitAddGasToken(wallet, gst2.address, owner);
+    });
+
+    it('should reserve zero gas token', async () => {
+      assertNumberEqual(
+        await wallet.getReservedGasToken(),
+        new BigNumber(0)
+      );
+    });
+
+    it('should add gasToken', async () => {
+      assert.equal(
+        await wallet.getGasToken(),
+        gst2.address
+      );
+    });
+
+    it('should emit GasTokenAddition', async () => {
+      const log = findLastLog(addGasTokenTx, 'GasTokenAddition');
+      assert.isOk(log);
+
+      const event = log.args as GasTokenAdditionEvent;
+      assert.equal(event.gasTokenAddress, gst2.address);
+    });
+  });
+
+  describe('transaction submitting', () => {
+    const required = 2;
+
+    let wallet: MultiSigWallet;
+
+    before(async () => {
+      wallet = await MultiSigWalletContract.new(
+        [owner, ownerSecond],
+        required,
+        { from: owner }
+      );
+    });
+
+    it('should revert if gas token not added', async () => {
+      await assertReverts(async () => {
+        await submitSaveStorage(wallet, gasConsumer, owner, 0);
+      });
+    });
+
+    context('gas token added', async () => {
+      const gasTokenAmount = 10;
+
+      before(async () => {
+        const submitAddGasTokenTx = await submitAddGasToken(
+          wallet,
+          gst2.address,
+          owner
+        );
+        const txId = findLastTransactionId(submitAddGasTokenTx);
+        await wallet.confirmTransaction(txId, { from: ownerSecond });
+      });
+
+      it('should revert if not has gas token amount', async () => {
+        await assertReverts(async () => {
+          await submitSaveStorage(wallet, gasConsumer, owner, gasTokenAmount);
+        });
+      });
+
+      context('token transfered to wallet', async () => {
+        before(async () => {
+          const mintedAmount = await mint(gst2, owner, 1, 100);
+          await gst2.transfer(wallet.address, mintedAmount, { from: owner });
+          assertNumberEqual(
+            await gst2.balanceOf(wallet.address),
+            new BigNumber(mintedAmount)
+          );
+        });
+
+        it('should reserve gas tokens for transaction', async () => {
+          const gasTokenReservedBefore = await wallet.getReservedGasToken();
+          await submitSaveStorage(wallet, gasConsumer, owner, gasTokenAmount);
+
+          assertNumberEqual(
+            await wallet.getReservedGasToken(),
+            gasTokenReservedBefore.add(gasTokenAmount)
+          );
+        });
+      });
+    });
+  });
+
+  describe('transaction executing', () => {
+    it.skip('should consume less gas with tokens', async () => {
+      assert.fail();
+    });
+
+    it.skip('should decrease locked tokens amount', async () => {
+      assert.fail();
+    });
+
+    it.skip('should revert if not own gas tokens', async () => {
+      assert.fail();
+    });
+  });
+});
+
+async function submitAddGasToken(
+  wallet: MultiSigWallet,
+  gst: Address,
+  from: Address
+): Promise<TransactionResult> {
+  const data = await getData(wallet.addGasToken, gst);
+  return await wallet.submitTransaction(wallet.address, 0, data, { from });
+}
+
+async function submitSaveStorage(
+  wallet: MultiSigWallet,
+  gasConsumer: GasConsumer,
+  from: Address,
+  gasTokenAmount: number,
+  saveCount: number = 1
+) {
+  const data = await getData(
+    gasConsumer.saveStorage,
+    saveCount
+  );
+  return await wallet.submitTransactionWithGasToken(
+    gasConsumer.address,
+    0,
+    data,
+    gasTokenAmount,
+    { from }
+  );
+}
 
 async function mint(
   gst2: GST2,

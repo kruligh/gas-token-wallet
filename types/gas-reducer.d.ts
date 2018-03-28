@@ -30,7 +30,7 @@ declare module 'gas-reducer' {
 
     transfer(
       to: Address,
-      amount: BigNumber,
+      amount: AnyNumber,
       options?: TransactionOptions
     ): Promise<TransactionResult>;
   }
@@ -83,10 +83,23 @@ declare module 'gas-reducer' {
       options?: TransactionOptions
     ): Promise<TransactionResult>;
 
+    addGasToken(
+      gasToken: Address,
+      options?: TransactionOptions
+    ): Promise<TransactionResult>;
+
     submitTransaction(
       destination: Address,
       value: AnyNumber,
       data: string,
+      options?: TransactionOptions
+    ): Promise<TransactionResult>;
+
+    submitTransactionWithGasToken(
+      destination: Address,
+      value: AnyNumber,
+      data: string,
+      gasTokenAmount: AnyNumber,
       options?: TransactionOptions
     ): Promise<TransactionResult>;
 
@@ -122,6 +135,10 @@ declare module 'gas-reducer' {
       pending: boolean,
       executed: boolean
     ): Promise<AnyNumber[]>;
+
+    getGasToken(): Promise<Address>;
+
+    getReservedGasToken(): Promise<BigNumber>;
   }
 
   interface ConfirmationEvent {
@@ -156,6 +173,10 @@ declare module 'gas-reducer' {
 
   interface RequirementChangeEvent {
     required: BigNumber;
+  }
+
+  interface GasTokenAdditionEvent {
+    gasTokenAddress: Address;
   }
 
   export interface MigrationsContract extends Contract<Migrations> {
