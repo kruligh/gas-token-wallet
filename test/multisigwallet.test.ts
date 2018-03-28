@@ -1,88 +1,31 @@
 import { BigNumber } from 'bignumber.js';
 import { assert } from 'chai';
 import {
-  ConfirmationEvent, ExecutionEvent, ExecutionFailureEvent,
-  GasConsumer,
+  ConfirmationEvent,
+  ExecutionEvent,
+  ExecutionFailureEvent,
   GasReducerArtifacts,
   GST2,
-  MultiSigWallet, OwnerAdditionEvent, OwnerRemovalEvent, RequirementChangeEvent,
-  RevocationEvent, SubmissionEvent
+  MultiSigWallet,
+  OwnerAdditionEvent,
+  OwnerRemovalEvent,
+  RequirementChangeEvent,
+  RevocationEvent,
+  SubmissionEvent
 } from 'gas-reducer';
 import { propOr } from 'ramda';
 import { ContractContextDefinition } from 'truffle';
-import { AnyNumber } from 'web3';
 import * as Web3 from 'web3';
-import {
-  assertNumberAlmostEqual,
-  assertNumberEqual, assertReverts,
-  executeWalletFunction,
-  findLastLog,
-  findLastTransactionId, getData
-} from './helpers';
+import { AnyNumber } from 'web3';
+import { deployGST2, GST2_MAGIC_ACCOUNT, GST2_MAGIC_NONCE } from './helpers/gst2.helpers';
+import { assertNumberEqual, assertReverts, findLastLog } from './helpers/common.helpers';
+import { executeWalletFunction, findLastTransactionId, getData } from './helpers/multisigwallet.helpers';
 
 declare const web3: Web3;
 declare const artifacts: GasReducerArtifacts;
 declare const contract: ContractContextDefinition;
 
-const GST2Contract = artifacts.require('./GasToken2.sol');
-const GasConsumerContract = artifacts.require('./GasConsumer.sol');
 const MultiSigWalletContract = artifacts.require('./MultiSigWallet.sol');
-
-const magicAccount: Address = '0x470F1C3217A2F408769bca5AB8a5c67A9040664A';
-const magicNonce = 125;
-
-contract('GasReducerConsumer', accounts => {
-  const owner = accounts[1];
-
-  describe('init', () => {
-    it('Should deploy GasConsumer', async () => {
-      const gasConsumer = await GasConsumerContract.new({ from: owner });
-      assert.isOk(gasConsumer);
-    });
-  });
-
-  describe('#saveStorage', () => {
-    let gasConsumer: GasConsumer;
-
-    beforeEach(async () => {
-      gasConsumer = await GasConsumerContract.new({ from: owner });
-    });
-
-    it('Should consume constant gas per save count', async () => {
-      const expectedGasAmount = 25800;
-      const gasEpsilon = 50;
-      const callTx = await gasConsumer.saveStorage(0);
-      const callGasUsage = callTx.receipt.gasUsed;
-
-      for (let i = 1; i <= 10; i++) {
-        const tx = await gasConsumer.saveStorage(i);
-        assertNumberAlmostEqual(
-          '' + (tx.receipt.gasUsed - callGasUsage) / i,
-          expectedGasAmount,
-          gasEpsilon
-        );
-      }
-    });
-  });
-});
-
-contract('GST2', accounts => {
-  let gst2: GST2;
-
-  before(async () => {
-    gst2 = await deployGST2(magicAccount, magicNonce);
-  });
-
-  describe('init', () => {
-    it('Should deploy GST2', async () => {
-      assert.isOk(gst2);
-    });
-
-    it('Should create magic account', () => {
-      assert.isOk(accounts.find(item => item.toUpperCase() === magicAccount.toUpperCase()));
-    });
-  });
-});
 
 contract('MultiSigWallet', accounts => {
   const owners = accounts.slice(0, 3);
@@ -325,53 +268,63 @@ contract('MultiSigWallet', accounts => {
   });
 
   describe('#executeTransaction', () => {
-    let transactionId: BigNumber;
+    context('Standard transaction', () => {
+      let transactionId: BigNumber;
 
-    beforeEach(async () => {
-      const tx = await submitAddOwner({ newOwner: accounts[9] });
-      transactionId = findLastTransactionId(tx);
-      await wallet.confirmTransaction(transactionId, { from: owners[1] });
-    });
-
-    it('should emit ExecutionEvent', async () => {
-      const tx = await wallet.confirmTransaction(transactionId, {
-        from: owners[2]
+      beforeEach(async () => {
+        const tx = await submitAddOwner({ newOwner: accounts[9] });
+        transactionId = findLastTransactionId(tx);
+        await wallet.confirmTransaction(transactionId, { from: owners[1] });
       });
 
-      const log = findLastLog(tx, 'Execution');
-      assert.isOk(log);
+      it('should emit ExecutionEvent', async () => {
+        const tx = await wallet.confirmTransaction(transactionId, {
+          from: owners[2]
+        });
 
-      const event = log.args as ExecutionEvent;
-      assertNumberEqual(event.transactionId, transactionId);
-    });
+        const log = findLastLog(tx, 'Execution');
+        assert.isOk(log);
 
-    it('should set transaction as executed', async () => {
-      await wallet.confirmTransaction(transactionId, {
-        from: owners[2]
+        const event = log.args as ExecutionEvent;
+        assertNumberEqual(event.transactionId, transactionId);
       });
 
-      const transactionCount = await wallet.getTransactionCount(false, true);
-      assertNumberEqual(transactionCount, 1);
+      it('should set transaction as executed', async () => {
+        await wallet.confirmTransaction(transactionId, {
+          from: owners[2]
+        });
 
-      const transactionIds = await wallet.getTransactionIds(0, 1, false, true);
-      assert.deepEqual(transactionIds, [transactionId]);
-    });
+        const transactionCount = await wallet.getTransactionCount(false, true);
+        assertNumberEqual(transactionCount, 1);
 
-    it('should revert for non-owner', async () => {
-      await assertReverts(async () => {
-        await wallet.executeTransaction(transactionId, { from: accounts[9] });
+        const transactionIds = await wallet.getTransactionIds(0, 1, false, true);
+        assert.deepEqual(transactionIds, [transactionId]);
+      });
+
+      it('should revert for non-owner', async () => {
+        await assertReverts(async () => {
+          await wallet.executeTransaction(transactionId, { from: accounts[9] });
+        });
+      });
+
+      it('should revert for non-existing transaction', async () => {
+        await assertReverts(async () => {
+          await wallet.executeTransaction(2, { from: owners[0] });
+        });
+      });
+
+      it('should revert when transaction is not confirmed', async () => {
+        await assertReverts(async () => {
+          await wallet.executeTransaction(transactionId, { from: owners[2] });
+        });
       });
     });
 
-    it('should revert for non-existing transaction', async () => {
-      await assertReverts(async () => {
-        await wallet.executeTransaction(2, { from: owners[0] });
-      });
-    });
+    context('GasToken2 in use', () => {
+      let gst2: GST2;
 
-    it('should revert when transaction is not confirmed', async () => {
-      await assertReverts(async () => {
-        await wallet.executeTransaction(transactionId, { from: owners[2] });
+      beforeEach(async () => {
+        gst2 = await deployGST2(GST2_MAGIC_ACCOUNT, GST2_MAGIC_NONCE);
       });
     });
   });
@@ -562,6 +515,7 @@ contract('MultiSigWallet', accounts => {
       });
     });
   });
+
 });
 
 async function mint(
@@ -580,19 +534,4 @@ async function mint(
   );
 
   return mintingTimes * mintingAmount;
-}
-
-async function deployGST2(owner: Address, nonce: number) {
-  const gasConsumer = await GasConsumerContract.new();
-
-  const actualNonce = await web3.eth.getTransactionCount(owner);
-  if (actualNonce >= nonce) {
-    throw new Error(`Nonce too high. Actual: ${actualNonce} the highest possible: ${nonce - 1}`);
-  }
-  for (let i = actualNonce; i < nonce; i++) {
-    await gasConsumer.doNothing({ from: owner });
-    process.stdout.write('.');
-  }
-  process.stdout.write('\n');
-  return await GST2Contract.new({ from: owner, nonce });
 }

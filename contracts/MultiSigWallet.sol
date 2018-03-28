@@ -14,6 +14,7 @@ contract GasTokenIfc {
 /**
  * @title Multisignature wallet
  * @dev Allows multiple parties to agree on transactions before execution
+ * @dev Can reduce gas usage by use GasToken (https://gastoken.io)
  * @author Stefan George <stefan.george@consensys.net>
  * @author Jakub Stefanski (https://github.com/jstefanski)
  * @author Dominik Kroliczek (https://github.com/kruligh)
