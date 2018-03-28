@@ -57,8 +57,105 @@ declare module 'gas-reducer' {
     ): Promise<TransactionResult>;
   }
 
-  export interface GasReducer extends ContractBase {
-    gst2(): Promise<Address>;
+  interface MultiSigWallet extends ContractBase {
+    owners(num: AnyNumber): Promise<Address[]>;
+
+    required(): Promise<BigNumber>;
+
+    addOwner(
+      owner: Address,
+      options?: TransactionOptions
+    ): Promise<TransactionResult>;
+
+    removeOwner(
+      owner: Address,
+      options?: TransactionOptions
+    ): Promise<TransactionResult>;
+
+    replaceOwner(
+      owner: Address,
+      newOwner: Address,
+      options?: TransactionOptions
+    ): Promise<TransactionResult>;
+
+    changeRequirement(
+      required: AnyNumber,
+      options?: TransactionOptions
+    ): Promise<TransactionResult>;
+
+    submitTransaction(
+      destination: Address,
+      value: AnyNumber,
+      data: string,
+      options?: TransactionOptions
+    ): Promise<TransactionResult>;
+
+    confirmTransaction(
+      transactionId: AnyNumber,
+      options?: TransactionOptions
+    ): Promise<TransactionResult>;
+
+    revokeConfirmation(
+      transactionId: AnyNumber,
+      options?: TransactionOptions
+    ): Promise<TransactionResult>;
+
+    executeTransaction(
+      transactionId: AnyNumber,
+      options?: TransactionOptions
+    ): Promise<TransactionResult>;
+
+    getConfirmationCount(transactionId: AnyNumber): Promise<BigNumber>;
+
+    getTransactionCount(
+      pending: boolean,
+      executed: boolean
+    ): Promise<BigNumber>;
+
+    getOwners(): Promise<Address[]>;
+
+    getConfirmations(transactionId: AnyNumber): Promise<Address[]>;
+
+    getTransactionIds(
+      from: AnyNumber,
+      to: AnyNumber,
+      pending: boolean,
+      executed: boolean
+    ): Promise<AnyNumber[]>;
+  }
+
+  interface ConfirmationEvent {
+    sender: Address;
+    transactionId: BigNumber;
+  }
+
+  interface RevocationEvent {
+    sender: Address;
+    transactionId: BigNumber;
+  }
+
+  interface ExecutionEvent {
+    transactionId: BigNumber;
+  }
+
+  interface ExecutionFailureEvent {
+    transactionId: BigNumber;
+  }
+
+  interface SubmissionEvent {
+    transactionId: BigNumber;
+  }
+
+  interface OwnerAdditionEvent {
+    owner: Address;
+  }
+
+  interface OwnerRemovalEvent {
+    owner: Address;
+  }
+
+  interface RequirementChangeEvent {
+    required: BigNumber;
   }
 
   export interface MigrationsContract extends Contract<Migrations> {
@@ -73,11 +170,12 @@ declare module 'gas-reducer' {
     'new'(options?: TransactionOptions): Promise<GasConsumer>;
   }
 
-  export interface GasReducerContract extends Contract<GasReducer> {
+  interface MultiSigWalletContract extends Contract<MultiSigWallet> {
     'new'(
-      gst2: Address,
+      owners: Address[],
+      required: AnyNumber,
       options?: TransactionOptions
-    ): Promise<GasReducer>;
+    ): Promise<MultiSigWallet>;
   }
 
   export interface GasReducerArtifacts extends TruffleArtifacts {
@@ -89,7 +187,7 @@ declare module 'gas-reducer' {
 
     require(name: './GasConsumer.sol'): GasConsumerContract;
 
-    require(name: './GasReducer.sol'): GasReducerContract;
+    require(name: './MultiSigWallet.sol'): MultiSigWalletContract;
   }
 
 }
