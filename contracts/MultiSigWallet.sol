@@ -1,4 +1,4 @@
-pragma solidity 0.4.19;
+pragma solidity 0.4.23;
 
 
 /**
@@ -6,7 +6,7 @@ pragma solidity 0.4.19;
  * @dev GasToken contract allows reduce gas usage.
  * @dev https://gastoken.io
  */
-contract GasTokenIfc {
+interface GasTokenIfc {
     function free(uint256 value) public returns (bool success);
     function balanceOf(address owner) public view returns (uint256 balance);
 }
@@ -33,8 +33,8 @@ contract MultiSigWallet {
     uint256 public required;
     uint256 public transactionCount;
 
-    GasTokenIfc gasToken;
-    uint256 reservedGasToken;
+    GasTokenIfc public gasToken;
+    uint256 public reservedGasToken;
 
     struct Transaction {
         address destination;

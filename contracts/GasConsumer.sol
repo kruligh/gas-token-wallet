@@ -1,4 +1,4 @@
-pragma solidity 0.4.19;
+pragma solidity 0.4.23;
 
 
 /**
@@ -8,7 +8,7 @@ pragma solidity 0.4.19;
  */
 contract GasConsumer {
 
-    uint256[] data;
+    uint256[] private data;
 
     function GasConsumer() public {
         //init data, otherwise first calls aveStorage consume extra initialization gas
@@ -20,7 +20,7 @@ contract GasConsumer {
     }
 
     function saveStorage(uint256 count) public {
-        for(uint i = 0; i<count; i++){
+        for (uint i = 0; i < count; i++) {
             data.push(1);
         }
     }

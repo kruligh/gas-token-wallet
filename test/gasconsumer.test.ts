@@ -28,12 +28,12 @@ contract('GasConsumer', accounts => {
     });
 
     it('Should consume constant gas per save count', async () => {
-      const expectedGasAmount = 25800;
-      const gasEpsilon = 50;
+      const expectedGasAmount = 25400;
+      const gasEpsilon = 100;
       const callTx = await gasConsumer.saveStorage(0);
       const callGasUsage = callTx.receipt.gasUsed;
 
-      for (let i = 1; i <= 10; i++) {
+      for (let i = 1; i <= 100; i += 10) {
         const tx = await gasConsumer.saveStorage(i);
         assertNumberAlmostEqual(
           '' + (tx.receipt.gasUsed - callGasUsage) / i,

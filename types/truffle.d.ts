@@ -4,7 +4,8 @@ declare module '*.json' {
 }
 
 declare module 'truffle' {
-  import { AnyNumber, TxData } from 'web3';
+  import { TxData } from '@0xproject/types';
+  import { AnyNumber } from 'web3';
 
   namespace truffle {
     type ScriptFinalizer = ((err?: any) => void);
@@ -107,10 +108,10 @@ declare module 'truffle' {
 
 declare module 'truffle-config' {
   import { BigNumber } from 'bignumber.js';
-  import { Provider } from 'web3';
 
   import * as Artifactor from 'truffle-artifactor';
   import * as Resolver from 'truffle-resolver';
+  import { Provider } from '@0xproject/types';
 
   type Options = {
     contracts_build_directory?: string;
@@ -133,6 +134,7 @@ declare module 'truffle-config' {
     working_directory?: string;
   };
 
+  // tslint:disable
   class Config {
     public artifactor: Artifactor;
     public contracts_build_directory: string;
@@ -144,6 +146,7 @@ declare module 'truffle-config' {
     public provider: Provider;
     public resolver: Resolver;
   }
+  // tslint:enable
 
   type Network = {
     network_id: string;
