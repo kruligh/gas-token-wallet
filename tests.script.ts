@@ -25,7 +25,7 @@ try {
   execSync(
     'truffle test --network=testrpc',
     {
-      stdio: [1, 2, 3]
+      stdio: [0, 1, 2]
     }
   );
 } catch (e) {
