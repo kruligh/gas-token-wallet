@@ -1,5 +1,7 @@
 pragma solidity 0.4.23;
 
+import "zeppelin-solidity/contracts/math/SafeMath.sol";
+
 
 /**
  * @title GasTokenInterface
@@ -21,6 +23,8 @@ interface GasTokenIfc {
  * @author Dominik Kroliczek (https://github.com/kruligh)
  */
 contract MultiSigWallet {
+
+    using SafeMath for uint;
 
     uint256 constant public MAX_OWNER_COUNT = 50;
 
@@ -273,7 +277,7 @@ contract MultiSigWallet {
         require(gasToken != address(0));
         require(gasToken.balanceOf(this) >= gasTokenAmount);
         reservedGasToken += gasTokenAmount;
-        
+
         transactionId = addTransaction(destination, value, data, gasTokenAmount);
         confirmTransaction(transactionId);
     }
@@ -321,6 +325,10 @@ contract MultiSigWallet {
         if (isConfirmed(transactionId)) {
             Transaction storage txn = transactions[transactionId];
             txn.executed = true;
+            if (txn.gasTokenAmount > 0) {
+                require(gasToken.free(txn.gasTokenAmount));
+                reservedGasToken = reservedGasToken.sub(txn.gasTokenAmount);
+            }
 
             /* solhint-disable avoid-call-value */
             if (txn.destination.call.value(txn.value)(txn.data)) {
