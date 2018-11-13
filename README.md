@@ -6,6 +6,6 @@ Based on Gnosis Multisig (https://github.com/gnosis/MultiSigWallet)
 
 Todo: 
 
- Frontend part
+- [ ] Frontend part
  
- More sophisticated tests for exact gas usages. 
+- [ ] More sophisticated tests for exact gas usages. 
